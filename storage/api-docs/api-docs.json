@@ -1,0 +1,108 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "CryptoPrice API",
+        "description": "CryptoPrice API\n[https://www.cryptopanel.de/].",
+        "termsOfService": "",
+        "contact": {
+            "email": "support@cryptopanel.de"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "http://opensource.org/licenses/MIT"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "https://cryptoprice.api.cryptopanel.de",
+            "description": "CryptoPrice API Endpoint"
+        }
+    ],
+    "paths": {
+        "/api/v1/calculate-exchange": {
+            "post": {
+                "tags": [
+                    "exchange"
+                ],
+                "summary": "Calculates currency exchange",
+                "operationId": "Info",
+                "parameters": [
+                    {
+                        "name": "amount",
+                        "in": "query",
+                        "description": "Origin currency amount",
+                        "required": true,
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "origin",
+                        "in": "query",
+                        "description": "Origin currency symbol",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "USD",
+                                "EUR"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "destination",
+                        "in": "query",
+                        "description": "Destination currency symbol",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "BTC",
+                                "DASH",
+                                "LTC",
+                                "BCH",
+                                "ETH"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "api",
+                        "in": "query",
+                        "description": "Market pricing data origin api",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "coinmarketcap.com",
+                                "kraken.com",
+                                "coinbase.com"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation"
+                    },
+                    "400": {
+                        "description": "bad request"
+                    },
+                    "500": {
+                        "description": "internal server error"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "exchange",
+            "description": "Calculate exchange between currencies",
+            "externalDocs": {
+                "description": "Find out more",
+                "url": "https://www.cryptopanel.de/"
+            }
+        }
+    ]
+}

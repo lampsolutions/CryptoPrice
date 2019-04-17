@@ -1,0 +1,3 @@
+0,30 * * * * www-data . /etc/container_environment.sh; cd /app/ && /usr/bin/php artisan coinmarketcap:cron > /dev/null 2>&1
+0,30 * * * * www-data . /etc/container_environment.sh; cd /app/ && /usr/bin/php artisan coinbase:cron > /dev/null 2>&1
+0,30 * * * * www-data . /etc/container_environment.sh; cd /app/ && /usr/bin/php artisan kraken:cron > /dev/null 2>&1
