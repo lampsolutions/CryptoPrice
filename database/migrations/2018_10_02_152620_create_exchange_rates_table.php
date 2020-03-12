@@ -19,6 +19,8 @@ class CreateExchangeRatesTable extends Migration
             $table->string('symbol')->unique();
         });
 
+        // TODO ADD CREATE  INDEX last_updated ON crypto_currency_rate(last_updated);
+
 
         Schema::create('crypto_currency_rate', function (Blueprint $table) {
             $table->increments('id');
