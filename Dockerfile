@@ -75,3 +75,4 @@ RUN chmod 755 /etc/container_environment.sh
 EXPOSE 80
 
 CMD ["/sbin/my_init"]
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD http://127.0.0.1/api/documentation || exit 1
