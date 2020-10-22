@@ -50,16 +50,19 @@ class ImportCoinbaseCommand extends Command {
     public function handle() {
 
         $responses=[];
+
         $responses[] = $this->restApi->getExchangeRates('BTC');
         $responses[] = $this->restApi->getExchangeRates('LTC');
         $responses[] = $this->restApi->getExchangeRates('ETH');
         $responses[] = $this->restApi->getExchangeRates('BCH');
+        $responses[] = $this->restApi->getExchangeRates('DASH');
 
         foreach($responses as $response) {
             if(!$response) return;
 
             $this->importCurrency($response['currency'], 'USD', $response['rates']['USD']);
             $this->importCurrency($response['currency'], 'EUR', $response['rates']['EUR']);
+            $this->importCurrency($response['currency'], 'CHF', $response['rates']['CHF']);
         }
 
     }
