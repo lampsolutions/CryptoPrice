@@ -8,6 +8,9 @@ $router->group(['prefix' => 'api/v1/'], function () use ($router) {
     $router->get('calculate-exchange/', 'CurrencyController@CalculateExchange');
     $router->post('calculate-exchange/', 'CurrencyController@CalculateExchange');
 
+    $router->get('calculate-historic-exchange/', 'CurrencyController@CalculateHistoricExchange');
+    $router->post('calculate-historic-exchange/', 'CurrencyController@CalculateHistoricExchange');
+
     $router->get('exchange-history-charts/', 'CurrencyController@GetExchangeHistoryCharts');
     $router->post('exchange-history-charts/', 'CurrencyController@GetExchangeHistoryCharts');
 });

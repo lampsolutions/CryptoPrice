@@ -46,7 +46,13 @@
                             "type": "string",
                             "enum": [
                                 "USD",
-                                "EUR"
+                                "EUR",
+                                "CHF",
+                                "BTC",
+                                "DASH",
+                                "LTC",
+                                "BCH",
+                                "ETH"
                             ]
                         }
                     },
@@ -62,7 +68,103 @@
                                 "DASH",
                                 "LTC",
                                 "BCH",
+                                "ETH",
+                                "USD",
+                                "EUR",
+                                "CHF"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "api",
+                        "in": "query",
+                        "description": "Market pricing data origin api",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "coinmarketcap.com",
+                                "kraken.com",
+                                "coinbase.com"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation"
+                    },
+                    "400": {
+                        "description": "bad request"
+                    },
+                    "500": {
+                        "description": "internal server error"
+                    }
+                }
+            }
+        },
+        "/api/v1/calculate-historic-exchange": {
+            "post": {
+                "tags": [
+                    "exchange"
+                ],
+                "summary": "Calculates historical currency exchange",
+                "operationId": "Info",
+                "parameters": [
+                    {
+                        "name": "amount",
+                        "in": "query",
+                        "description": "Origin currency amount",
+                        "required": true,
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "origin",
+                        "in": "query",
+                        "description": "Origin currency symbol",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "USD",
+                                "EUR",
+                                "CHF",
+                                "BTC",
+                                "DASH",
+                                "LTC",
+                                "BCH",
                                 "ETH"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "datetime",
+                        "in": "query",
+                        "description": "Origin currency symbol",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "destination",
+                        "in": "query",
+                        "description": "Destination currency symbol",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "BTC",
+                                "DASH",
+                                "LTC",
+                                "BCH",
+                                "ETH",
+                                "USD",
+                                "EUR",
+                                "CHF"
                             ]
                         }
                     },

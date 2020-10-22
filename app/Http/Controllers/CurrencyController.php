@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\CryptoCurrency;
+use App\CryptoCurrencyRate;
+use App\Enums\Fiat\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +32,7 @@ class CurrencyController extends Controller {
      *         required=true,
      *         @OA\Schema(
      *             type="string",
-     *             enum={"USD", "EUR"}
+     *             enum={"USD", "EUR", "CHF", "BTC", "DASH", "LTC", "BCH", "ETH"}
      *
      *         )
      *     ),
@@ -41,7 +43,7 @@ class CurrencyController extends Controller {
      *         required=true,
      *         @OA\Schema(
      *             type="string",
-     *             enum={"BTC", "DASH", "LTC", "BCH", "ETH"}
+     *             enum={"BTC", "DASH", "LTC", "BCH", "ETH", "USD", "EUR", "CHF"}
      *         )
      *     ),
      *     @OA\Parameter(
@@ -90,6 +92,140 @@ class CurrencyController extends Controller {
 
             return [
                 'amount' => $price,
+                'currency' => $currency->symbol,
+                'api' => $currency_rate->api,
+                'last_updated' => date(DATE_ATOM, strtotime($currency_rate->last_updated))
+            ];
+        } catch (\Exception $e) {
+            return new Response('', 400);
+        }
+    }
+
+
+    private function fiat_to_coin($amount, $rate) {
+        $coin_amount = ( (float)$amount * (float)$rate->price );
+        return $coin_amount;
+    }
+
+    private function coin_to_fiat($amount, $rate) {
+        $fiat_amount = ( (float)$amount * (1/(float)$rate->price ));
+        return $fiat_amount;
+    }
+
+    /**
+     * @param $coin
+     * @param $fiat
+     * @param bool $api
+     * @return CryptoCurrencyRate
+     */
+    private function getRate($coin,$fiat,$api=false){
+        try {
+            $currency = CryptoCurrency::where('symbol', '=' , $coin)->firstOrFail();
+            $currency_rate = $currency->rates()
+                ->where('api', $api)
+                ->where('currency', $fiat)
+                ->orderBy('last_updated', 'DESC')
+                ->firstOrFail();
+
+            return $currency_rate;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/calculate-historic-exchange",
+     *     tags={"exchange"},
+     *     summary="Calculates historical currency exchange",
+     *     @OA\Parameter(
+     *         name="amount",
+     *         in="query",
+     *         description="Origin currency amount",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="number"
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="origin",
+     *         in="query",
+     *         description="Origin currency symbol",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string",
+     *             enum={"USD", "EUR", "CHF", "BTC", "DASH", "LTC", "BCH", "ETH"}
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="datetime",
+     *         in="query",
+     *         description="Origin currency symbol",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string",
+     *             format="date-time",
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="destination",
+     *         in="query",
+     *         description="Destination currency symbol",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string",
+     *             enum={"BTC", "DASH", "LTC", "BCH", "ETH", "USD", "EUR", "CHF"}
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="api",
+     *         in="query",
+     *         description="Market pricing data origin api",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string",
+     *             enum={"coinmarketcap.com", "kraken.com", "coinbase.com"}
+     *         )
+     *     ),
+     *     operationId="Info",
+     *     @OA\Response(
+     *         response=200,
+     *         description="successful operation"
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="bad request"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="internal server error"
+     *     )
+     * )
+     *
+     * @param Request $request
+     * @return mixed
+     */
+    public function CalculateHistoricExchange(Request $request) {
+        $amount = $request->get('amount');
+        $origin = $request->get('origin');
+        $datetime = $request->get('datetime');
+        $destination = $request->get('destination');
+        $api = empty($request->get('api')) ? 'coinmarketcap.com' : $request->get('api');
+
+
+        try {
+            if(in_array($origin, ['EUR', 'USD', 'CHF'])) {
+                $currency_rate = $this->getRate($destination, $origin, $api);
+                $currency = CryptoCurrency::where('symbol', '=' , $destination)->firstOrFail();
+                $rate = $this->fiat_to_coin($amount, $currency_rate);
+            } else {
+                $currency_rate = $this->getRate($origin, $destination, $api);
+                $currency = CryptoCurrency::where('symbol', '=' , $origin)->firstOrFail();
+                $rate = $this->coin_to_fiat($amount, $currency_rate);
+            }
+
+            return [
+                'amount' => $rate,
                 'currency' => $currency->symbol,
                 'api' => $currency_rate->api,
                 'last_updated' => date(DATE_ATOM, strtotime($currency_rate->last_updated))
