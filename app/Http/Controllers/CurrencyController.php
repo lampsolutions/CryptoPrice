@@ -104,12 +104,12 @@ class CurrencyController extends Controller {
 
     private function fiat_to_coin($amount, $rate) {
         $coin_amount = ( (float)$amount * (float)$rate->price );
-        return $coin_amount;
+        return round($coin_amount, (int)env('CURRENCY_EXCHANGE_PRECISION'));
     }
 
     private function coin_to_fiat($amount, $rate) {
         $fiat_amount = ( (float)$amount * (1/(float)$rate->price ));
-        return $fiat_amount;
+        return round($fiat_amount, (int)env('CURRENCY_EXCHANGE_PRECISION'));
     }
 
     /**
@@ -118,13 +118,17 @@ class CurrencyController extends Controller {
      * @param bool $api
      * @return CryptoCurrencyRate
      */
-    private function getRate($coin,$fiat,$api=false){
+    private function getRate($coin,$fiat,$dateTime=false,$api=false){
         try {
+            $unixTime = strtotime($dateTime);
+            $dateFormattedSafe = date(DATE_ATOM, $unixTime);
             $currency = CryptoCurrency::where('symbol', '=' , $coin)->firstOrFail();
             $currency_rate = $currency->rates()
                 ->where('api', $api)
+                ->where('last_updated', '>=', date(DATE_ATOM, strtotime('-3 days', $unixTime)))
+                ->where('last_updated', '<=', date(DATE_ATOM, strtotime('+3 days', $unixTime)))
                 ->where('currency', $fiat)
-                ->orderBy('last_updated', 'DESC')
+                ->orderByRaw('ABS( TIMESTAMPDIFF(SECOND, last_updated, "'.$dateFormattedSafe.'" ) )')
                 ->firstOrFail();
 
             return $currency_rate;
@@ -215,17 +219,18 @@ class CurrencyController extends Controller {
 
         try {
             if(in_array($origin, ['EUR', 'USD', 'CHF'])) {
-                $currency_rate = $this->getRate($destination, $origin, $api);
+                $currency_rate = $this->getRate($destination, $origin, $datetime, $api);
                 $currency = CryptoCurrency::where('symbol', '=' , $destination)->firstOrFail();
-                $rate = $this->fiat_to_coin($amount, $currency_rate);
-            } else {
-                $currency_rate = $this->getRate($origin, $destination, $api);
-                $currency = CryptoCurrency::where('symbol', '=' , $origin)->firstOrFail();
+
                 $rate = $this->coin_to_fiat($amount, $currency_rate);
+            } else {
+                $currency_rate = $this->getRate($origin, $destination, $datetime, $api);
+                $currency = CryptoCurrency::where('symbol', '=' , $origin)->firstOrFail();
+                $rate = $this->fiat_to_coin($amount, $currency_rate);
             }
 
             return [
-                'amount' => $rate,
+                'amount' => (string)$rate,
                 'currency' => $currency->symbol,
                 'api' => $currency_rate->api,
                 'last_updated' => date(DATE_ATOM, strtotime($currency_rate->last_updated))
@@ -267,12 +272,16 @@ class CurrencyController extends Controller {
                 $rate_24hago_end = $currency->rates()
                     ->where('api', $api)
                     ->where('currency', $origin)
+                    ->where('last_updated', '>=', date(DATE_ATOM, strtotime('-3 days'))) // optimize
+                    ->where('last_updated', '<=', date(DATE_ATOM, strtotime('+3 days'))) // optimize
                     ->where('last_updated', 'LIKE', date('Y-m-d H:%', strtotime('-1day')))
                     ->orderBy('last_updated', 'ASC')->firstOrFail();
             } catch (\Exception $e) {
                 $rate_24hago_end = $currency->rates()
                     ->where('api', $api)
                     ->where('currency', $origin)
+                    ->where('last_updated', '>=', date(DATE_ATOM, strtotime('-3 days'))) // optimize
+                    ->where('last_updated', '<=', date(DATE_ATOM, strtotime('+3 days'))) // optimize
                     ->where('last_updated', 'LIKE', date('Y-m-d H:%', strtotime('-2day')))
                     ->orderBy('last_updated', 'ASC')->firstOrFail();
             }
@@ -295,6 +304,7 @@ class CurrencyController extends Controller {
                 ]
             ];
         } catch (\Exception $e) {
+
             return new Response($e->getMessage(), 400);
         }
     }
