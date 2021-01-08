@@ -101,6 +101,137 @@ class CurrencyController extends Controller {
         }
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/v1/calculate-best-exchange",
+     *     tags={"exchange"},
+     *     summary="Calculates currency exchange with highest amount of bitcoins based on kraken coinbase coinmarketcap data",
+     *     @OA\Parameter(
+     *         name="amount",
+     *         in="query",
+     *         description="Origin currency amount",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="number"
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="origin",
+     *         in="query",
+     *         description="Origin currency symbol",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string",
+     *             enum={"USD", "EUR", "CHF", "BTC", "DASH", "LTC", "BCH", "ETH"}
+     *
+     *         )
+     *     ),
+     *     @OA\Parameter(
+     *         name="destination",
+     *         in="query",
+     *         description="Destination currency symbol",
+     *         required=true,
+     *         @OA\Schema(
+     *             type="string",
+     *             enum={"BTC", "DASH", "LTC", "BCH", "ETH", "USD", "EUR", "CHF"}
+     *         )
+     *     ),
+     *     operationId="Info",
+     *     @OA\Response(
+     *         response=200,
+     *         description="successful operation"
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="bad request"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="internal server error"
+     *     )
+     * )
+     *
+     * @param Request $request
+     * @return mixed
+     */
+    public function CalculateBestExchange(Request $request) {
+        $amount = $request->get('amount');
+        $origin = $request->get('origin');
+        $destination = $request->get('destination');
+
+        try {
+            // coinmarketcap
+            $currency = CryptoCurrency::where('symbol', '=' , $destination)->firstOrFail();
+            $currency_rate = $currency->rates()
+                ->where('api', 'coinmarketcap.com')
+                ->where('currency', $origin)
+                ->orderBy('last_updated', 'DESC')
+                ->firstOrFail();
+
+            $price = bcdiv($amount, $currency_rate->price, (int)env('CURRENCY_EXCHANGE_PRECISION'));
+
+
+            $coinmarketcap = [
+                'amount' => $price,
+                'currency' => $currency->symbol,
+                'api' => $currency_rate->api,
+                'last_updated' => date(DATE_ATOM, strtotime($currency_rate->last_updated))
+            ];
+
+            // coinbase
+            $currency = CryptoCurrency::where('symbol', '=' , $destination)->firstOrFail();
+            $currency_rate = $currency->rates()
+                ->where('api', 'coinbase.com')
+                ->where('currency', $origin)
+                ->orderBy('last_updated', 'DESC')
+                ->firstOrFail();
+
+            $price = bcdiv($amount, $currency_rate->price, (int)env('CURRENCY_EXCHANGE_PRECISION'));
+
+
+            $coinbase = [
+                'amount' => $price,
+                'currency' => $currency->symbol,
+                'api' => $currency_rate->api,
+                'last_updated' => date(DATE_ATOM, strtotime($currency_rate->last_updated))
+            ];
+
+
+            // kraken
+            $currency = CryptoCurrency::where('symbol', '=' , $destination)->firstOrFail();
+            $currency_rate = $currency->rates()
+                ->where('api', 'kraken.com')
+                ->where('currency', $origin)
+                ->orderBy('last_updated', 'DESC')
+                ->firstOrFail();
+
+            $price = bcdiv($amount, $currency_rate->price, (int)env('CURRENCY_EXCHANGE_PRECISION'));
+
+
+            $kraken = [
+                'amount' => $price,
+                'currency' => $currency->symbol,
+                'api' => $currency_rate->api,
+                'last_updated' => date(DATE_ATOM, strtotime($currency_rate->last_updated))
+            ];
+
+        } catch (\Exception $e) {
+            return new Response('', 400);
+        }
+
+        $best = $coinmarketcap;
+        if($kraken['amount'] > $best['amount']) {
+            $best = $kraken;
+        }
+
+        if($coinbase['amount'] > $best['amount']) {
+            $best = $coinbase;
+        }
+
+        return $best;
+
+    }
+
 
     private function fiat_to_coin($amount, $rate) {
         $coin_amount = ( (float)$amount * (float)$rate->price );

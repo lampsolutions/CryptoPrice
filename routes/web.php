@@ -5,6 +5,9 @@ $router->get('/', function () use ($router) {
 });
 
 $router->group(['prefix' => 'api/v1/'], function () use ($router) {
+    $router->get('calculate-best-exchange/', 'CurrencyController@CalculateBestExchange');
+    $router->post('calculate-best-exchange/', 'CurrencyController@CalculateBestExchange');
+
     $router->get('calculate-exchange/', 'CurrencyController@CalculateExchange');
     $router->post('calculate-exchange/', 'CurrencyController@CalculateExchange');
 
